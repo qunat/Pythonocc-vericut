@@ -48,11 +48,16 @@
      </font>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab_4">
      <attribute name="title">
       <string>仿真显示界面</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab">
+     <attribute name="title">
+      <string>Page</string>
      </attribute>
     </widget>
    </widget>

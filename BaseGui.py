@@ -4,7 +4,7 @@ import copyreg
 import logging
 import os
 import sys
-#import threading,time
+import numba
 import threading
 import time,re
 #from PyQt5 import QtSvg
@@ -21,7 +21,7 @@ from OCC.Extend.TopologyUtils import TopologyExplorer
 from PyQt5.QtWidgets import QHBoxLayout, QDockWidget, \
 	QListWidget, QFileDialog
 import G_Code_interpreter
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets,Qt
 from graphics import GraphicsView, GraphicsPixmapItem
 import Vision
 from OCC.Core.TopAbs import (TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX,
@@ -320,7 +320,12 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				if code == []:
 					continue
 				print(code)
-				self.textBrowser.append(G_Ccode)
+				#self.textBrowser.append(G_Ccode)
+				
+				self.textBrowser.setTextColor(QtGui.QColor(1,1,1))
+				self.textBrowser.append(
+					"<font color='red'>" + '{}'.format(code) + "<font>")
+				
 				if code[0] == "G01":
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
@@ -374,7 +379,6 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 
 			except Exception as e:
 				print(e)
-
 	def Mill_cut_Simulation(self):
 		# self.textBrowser.ensureCursorVisible()  # 游标可用
 		# cursor = self.textBrowser.cursor()  # 设置游标
@@ -407,7 +411,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					x1 = float(code[1])  # 目标X坐标
 					y1 = float(code[2])  # 目标X坐标
 					z1 = float(code[3])  # 目标X坐标
-					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=2)
+					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=1)
 					#print(path_pnt_list)
 				elif  code[0]=="G00":
 					x0 = float(self.machining["x0"])  # 当前X坐标
@@ -550,15 +554,19 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
+			print(1,time.time())
 			Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
+			print(2,time.time())
 			Cutting_result.SimplifyResult()
+			print(3,time.time())
 			self.Blank = Cutting_result.Shape()
-			#self.canva._display.Context.Erase(self.show_Blank[0], True)
-			self.show_Blank = self.canva._display.Context.Redisplay(Cutting_result.Shape(), update=False)
-			self.canva._display.Context.UpdateCurrentViewer()
-			Cutting_result.Clear()
+			print(4,time.time())
+			self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
+			print(5,time.time())
+			self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
+			print(6,time.time())
 			#del self.show_Blank[0]
-			#self.Blank = self.Cutting_result
+			#self.Blank = Cutting_result
 
 
 		except Exception as e:
@@ -585,7 +593,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			change=self.show_Blank[0].Shape()
 
 
-			self.offset_Z=H
+			self.offset_Z=0
 		except Exception as e:
 			print(e)
 	def Delete_Blank(self):
@@ -600,16 +608,17 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			t2=time.time()
 			print(t2-t1)
 
-			box = BRepPrimAPI_MakeBox(200, 200, 200).Shape()
+			box = BRepPrimAPI_MakeBox(float(self.lineEdit_8.text()), float(self.lineEdit_9.text()), float(self.lineEdit_10.text())).Shape()
 			# Fillet
 			fillet = BRepFilletAPI_MakeFillet(box)
 			for e in TopologyExplorer(box).edges():
 				fillet.Add(20, e)
-
 			blended_box = ((fillet.Shape()))
-
 			self.show_Blank[0].SetShape(blended_box)#将已经显示的零件设置成另外一个新零件
-			self.canva._display.Context.Redisplay(self.show_Blank[0],True,True)#重新计算更新已经显示的物体
+			self.canva._display.Context.Redisplay(self.show_Blank[0],True,False)#重新计算更新已经显示的物体
+			self.canva._display.FitAll()
+			#self.canva._display.Repaint()
+
 
 		except Exception as e:
 			print(e)
