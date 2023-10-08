@@ -4,7 +4,6 @@ import copyreg
 import logging
 import os
 import sys
-import numba
 import threading
 import time,re
 #from PyQt5 import QtSvg
@@ -20,14 +19,12 @@ from OCC.Display.backend import load_backend, get_qt_modules
 from OCC.Extend.TopologyUtils import TopologyExplorer
 from PyQt5.QtWidgets import QHBoxLayout, QDockWidget, \
 	QListWidget, QFileDialog
-import G_Code_interpreter
+from module import G_Code_interpreter
 from PyQt5 import QtCore, QtWidgets,Qt
 from graphics import GraphicsView, GraphicsPixmapItem
-import Vision
 from OCC.Core.TopAbs import (TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX,
 							 TopAbs_SHELL, TopAbs_SOLID)
-from Get_Linear_interpolation import Get_Linear_interpolation_point,Get_Arc_interpolation_point
-from memory_profiler import profile
+from module.Get_Linear_interpolation import Get_Linear_interpolation_point,Get_Arc_interpolation_point
 
 
 #------------------------------------------------------------开始初始化环境
@@ -66,7 +63,7 @@ used_backend = load_backend(backend_str)
 log.info("GUI backend set to: %s", used_backend)
 #------------------------------------------------------------初始化结束
 from OCC.Display.qtDisplay import qtViewer3d
-import MainGui
+from module import MainGui
 from PyQt5.QtGui import QPixmap
 QtCore, QtGui, QtWidgets, QtOpenGL = get_qt_modules()
 from OCC.Extend.DataExchange import read_step_file,write_step_file,read_stl_file,read_iges_file,read_step_file_with_names_colors
@@ -388,6 +385,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		self.textBrowser.clear()
 		self.my_cylinder = BRepPrimAPI_MakeCylinder(10, 50).Shape()
 		self.tool = TopoDS_Shape(self.my_cylinder)  # 建立刀具
+		print("开始切削")
 		for code,G_Ccode  in zip(self.interpreter_G_code.Out_NC_simple,self.textBrowser_list):
 			try:
 				if self.pause == -1:
@@ -402,43 +400,68 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				time.sleep(0.03)
 				if code == []:
 					continue
-				print(code)
 				self.textBrowser.append(G_Ccode)
-				if code[0]=="G01" :
+
+				
+				G_Ccode=G_Ccode.split(" ")
+				print(G_Ccode,type(G_Ccode))
+				if G_Ccode[0][0]=="G":
+					if code[0] in ["G00","G01","G02","G03"]:
+						self.machining["status_G"]=code[0]
+				
+				for code in G_Ccode:
+					if code[0]=="X":
+						self.machining["x"]=code.replace("X","")
+					elif code[0]=="Y":
+						self.machining["y"]=code.replace("Y","")
+					elif code[0]=="Z":
+						self.machining["z"]=code.replace("Z","")
+					elif code[0]=="I":
+						self.machining["i"]=code.replace("I","")
+					elif code[0]=="J":
+						self.machining["j"]=code.replace("J","")
+					elif code[0]=="K":
+						self.machining["k"]=code.replace("K","")
+					
+
+				
+				print(self.machining)
+				if self.machining["status_G"]=="G01" :
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
 					z0 = float(self.machining["z0"])  # 当前z坐标
-					x1 = float(code[1])  # 目标X坐标
-					y1 = float(code[2])  # 目标X坐标
-					z1 = float(code[3])  # 目标X坐标
+					x1 = float(self.machining["x"])  # 目标X坐标
+					y1 = float(self.machining["y"])  # 目标X坐标
+					z1 = float(self.machining["z"])  # 目标X坐标
 					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=1)
-					#print(path_pnt_list)
-				elif  code[0]=="G00":
+
+					
+				elif  self.machining["status_G"]=="G00":
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
 					z0 = float(self.machining["z0"])  # 当前z坐标
-					x1 = float(code[1])  # 目标X坐标
-					y1 = float(code[2])  # 目标X坐标
-					z1 = float(code[3])  # 目标X坐标
+					x1 = float(self.machining["x"])  # 目标X坐标
+					y1 = float(self.machining["y"])  # 目标X坐标
+					z1 = float(self.machining["z"])  # 目标X坐标
 					path_pnt_list=[gp_Pnt(x1,y1,z1)]
 					#print(path_pnt_list)
-				elif code[0]=="G02" or code[0]=="G03":
+				elif self.machining["status_G"]=="G02" or self.machining["status_G"]=="G03":
 
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
 					z0 = float(self.machining["z0"])  # 当前z坐标
-					x1 = float(code[1])  # 目标X坐标
-					y1 = float(code[2])  # 目标y坐标
-					z1 = float(code[3])  # 目标z坐标
-					i = float(code[4]) # 目标I坐标
-					j = float(code[5])  # 目标J坐标
-					k = float(code[6])  # 目标K坐标
+					x1 = float(self.machining["x"])  # 目标X坐标
+					y1 = float(self.machining["y"])  # 目标X坐标
+					z1 = float(self.machining["z"])  # 目标X坐标
+					i = float(self.machining["i"]) # 目标I坐标
+					j = float(self.maself.machining["j"])  # 目标j坐标
+					k=float(self.maself.machining["k"])  # 目标K坐标
 					path_pnt_list=Get_Arc_interpolation_point([x0,y0,z0],[x1,y1,z1],[i,j,k])
+
 					#self.canva._display.DisplayShape(path)
-					print("显示成功")
-				self.machining["x0"] = x1
-				self.machining["y0"] = y1
-				self.machining["z0"] = z1
+				self.machining["x0"] = self.machining["x"]
+				self.machining["y0"] = self.machining["y"]
+				self.machining["z0"] = self.machining["z"]
 
 				for path_pnt in path_pnt_list:
 					pass
@@ -446,11 +469,6 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					y=path_pnt.Y()
 					z=path_pnt.Z()
 					self.Mill_cut(x, y, z+self.offset_Z)
-					try:
-						#self.canva._display.DisplayShape(path_pnt,update=True)
-						pass
-					except:
-						pass
 					QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
 					self.statusBar().showMessage('状态：仿真进行中')
 					# self.tetxBrowser.moveCursor(self.cursor.setPos(0,0))  # 光标移到最后，这样就会自动显示出来
@@ -593,7 +611,8 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			change=self.show_Blank[0].Shape()
 
 
-			self.offset_Z=0
+			self.offset_Z=H
+			print(self.offset_Z)
 		except Exception as e:
 			print(e)
 	def Delete_Blank(self):
@@ -645,14 +664,6 @@ class Cnc_code_status_Show(object):
 		pass
 
 
-class Vision(QtWidgets.QMainWindow,Vision.Ui_Form):
-	def __init__(self,parent=None):
-		super(Vision, self).__init__(parent)
-		self.setupUi(self)
-		self.label_6.setText("<A href='https://www.onlinedown.net/'>软件下载：https://www.onlinedown.net/</a>")
-		self.label_6.setOpenExternalLinks(True)
-
-
 
 
 
@@ -668,8 +679,6 @@ if __name__ == '__main__':
 	time.sleep(0.5)
 	#--------------------
 	win = Mywindown()
-	win_vision=Vision()
-	win.vision.triggered.connect(win_vision.show)
 	win.show()
 	win.centerOnScreen()
 	win.canva.InitDriver()
