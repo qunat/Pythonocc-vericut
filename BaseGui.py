@@ -25,6 +25,7 @@ from graphics import GraphicsView, GraphicsPixmapItem
 from OCC.Core.TopAbs import (TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX,
 							 TopAbs_SHELL, TopAbs_SOLID)
 from module.Get_Linear_interpolation import Get_Linear_interpolation_point,Get_Arc_interpolation_point
+from OCC.BRepOffsetAPI import BRepOffsetAPI_MakePipe
 
 
 #------------------------------------------------------------开始初始化环境
@@ -569,6 +570,15 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		t.start()
 
 	#@profile
+	def Create_sweep_tool_path(self):
+		#create leading line
+		spline = GeomAPI_PointsToBSpline(array).Curve()
+		edge = BRepBuilderAPI_MakeEdge(spline).Edge()
+		#create profile 
+		profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
+		profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
+		profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
+		pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
