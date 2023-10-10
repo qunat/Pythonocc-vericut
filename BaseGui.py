@@ -25,9 +25,11 @@ from graphics import GraphicsView, GraphicsPixmapItem
 from OCC.Core.TopAbs import (TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX,
 							 TopAbs_SHELL, TopAbs_SOLID)
 from module.Get_Linear_interpolation import Get_Linear_interpolation_point,Get_Arc_interpolation_point
-from OCC.BRepOffsetAPI import BRepOffsetAPI_MakePipe
-
-
+from OCC.Core.BRepOffsetAPI import BRepOffsetAPI_MakePipe
+from PyQt5.QtWidgets import QApplication, QStyleFactory
+from OCC.Core.TColgp import TColgp_Array1OfPnt
+from OCC.Core.GeomAPI import GeomAPI_PointsToBSpline
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge,BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeFace
 #------------------------------------------------------------开始初始化环境
 log = logging.getLogger(__name__)
 def check_callable(_callable):
@@ -426,7 +428,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					
 
 				
-				print(self.machining)
+				#print(self.machining)
 				if self.machining["status_G"]=="G01" :
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
@@ -463,19 +465,35 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				self.machining["x0"] = self.machining["x"]
 				self.machining["y0"] = self.machining["y"]
 				self.machining["z0"] = self.machining["z"]
-
-				for path_pnt in path_pnt_list:
+				#print(path_pnt_list)
+				for path_pnt_num in range(len(path_pnt_list)):
 					pass
-					x=path_pnt.X()
-					y=path_pnt.Y()
-					z=path_pnt.Z()
-					self.Mill_cut(x, y, z+self.offset_Z)
-					QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
-					self.statusBar().showMessage('状态：仿真进行中')
-					# self.tetxBrowser.moveCursor(self.cursor.setPos(0,0))  # 光标移到最后，这样就会自动显示出来
-					# self.cursor.setPosition((self.textBrowser_list.index(code))*60)
-					# self.textBrowser.setTextCursor(self.cursor)
-					# QtWidgets.QApplication.processEvents()
+					try:
+						print(path_pnt_num)
+
+						if path_pnt_num==0:
+							continue
+
+						x0=path_pnt_list[path_pnt_num-1].X()
+						y0=path_pnt_list[path_pnt_num-1].Y()
+						z0=path_pnt_list[path_pnt_num-1].Z()
+
+						x=path_pnt_list[path_pnt_num].X()
+						y=path_pnt_list[path_pnt_num].Y()
+						z=path_pnt_list[path_pnt_num].Z()
+
+						self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+						#self.Mill_cut(x, y, z+self.offset_Z)
+						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
+						self.statusBar().showMessage('状态：仿真进行中')
+						# self.tetxBrowser.moveCursor(self.cursor.setPos(0,0))  # 光标移到最后，这样就会自动显示出来
+						# self.cursor.setPosition((self.textBrowser_list.index(code))*60)
+						# self.textBrowser.setTextCursor(self.cursor)
+						# QtWidgets.QApplication.processEvents()
+					except 	Exception as e:
+						print(e)
+						pass
+
 
 
 
@@ -484,38 +502,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 
 
 
-	def Ccode_Browser_UpDate(self):
-		pass
-	def Show_3d_model(self,filename="SFU2005-4"):#显示需要加工零件
 
-		pass
-		#更新显示
-		try:
-
-			self.canva._display.EraseAll()
-			self.canva._display.hide_triedron()
-			self.canva._display.display_triedron()
-			self.canva._display.Repaint()
-			self.aCompound.Free()
-		except:
-			pass
-		self.filename=filename
-		return filename
-
-
-	def Copy_part_to_path(self):  #生成数据到指定路径
-		try:
-
-			self.filename = "gear"
-			path="D:\\"+self.filename
-			fileName, ok = QFileDialog.getSaveFileName(self, "文件保存", path, "All Files (*);;Text Files (*.step)")
-			write_step_file(self.acompound, fileName)
-			#breptools_Write(self.aCompound, 'box.brep')
-		except:
-			pass
-
-	def Get_select_shape(self):
-		self.measure_signal=1
 	def Axis_move(self,distance_x=None,distance_y=None,distance_z=None):
 		pass
 		try:
@@ -528,38 +515,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		except  Exception as e:
 			print(e)
 
-	def X_Axis_move(self,distance=None):
-		pass
-		try:
-			self.X_Axis = gp_Trsf()  # 变换类
-			self.X_Axis.SetTranslation(gp_Vec(distance, 0, 0))  # 设置变换类为平移
-			self.X_Axis_Toploc = TopLoc_Location(self.X_Axis)
-			self.canva._display.Context.SetLocation(self.show_Machine_spindle_shape[0], self.X_Axis_Toploc)
-			self.canva._display.Context.UpdateCurrentViewer()
-		except  Exception as e:
-			print(e)
-
-	def Y_Axis_move(self, distance=None):
-		pass
-		try:
-			self.Y_Axis = gp_Trsf()  # 变换类
-			self.Y_Axis.SetTranslation(gp_Vec(0, distance, 0))  # 设置变换类为平移
-			self.Y_Axis_Toploc = TopLoc_Location(self.Y_Axis)
-			self.canva._display.Context.SetLocation(self.show_Machine_spindle_shape[0], self.Y_Axis_Toploc)
-			self.canva._display.Context.UpdateCurrentViewer()
-		except  Exception as e:
-			print(e)
-
-	def Z_Axis_move(self, distance=None):
-		pass
-		try:
-			self.Z_Axis = gp_Trsf()  # 变换类
-			self.Z_Axis.SetTranslation(gp_Vec(0, 0, distance))  # 设置变换类为平移
-			self.Z_Axis_Toploc = TopLoc_Location(self.Z_Axis)
-			self.canva._display.Context.SetLocation(self.show_Machine_spindle_shape[0], self.Z_Axis_Toploc)
-			self.canva._display.Context.UpdateCurrentViewer()
-		except  Exception as e:
-			print(e)
+	
 	def Automatic_run(self,distance=[]):
 		pass
 		self.Mill_cut()
@@ -570,33 +526,35 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		t.start()
 
 	#@profile
-	def Create_sweep_tool_path(self):
+	def Create_sweep_tool_path(self,x0,y0,z0,x,y,z):
 		#create leading line
-		spline = GeomAPI_PointsToBSpline(array).Curve()
-		edge = BRepBuilderAPI_MakeEdge(spline).Edge()
+		print(x0,y0,z0)
+		point1 = gp_Pnt(float(x0),float(y0),float(z0))
+		point2 = gp_Pnt(float(x),float(y),float(z))
+		print(point1.Coord(),point2.Coord())
+		edge = BRepBuilderAPI_MakeEdge(point1,point2).Edge()
+		
+		ais_shape=AIS_Shape(edge)
+		self.canva._display.Context.Display(ais_shape,True)
+		self.canva._display.Context.UpdateCurrentViewer()
+		print("make edge ok")
+	
 		#create profile 
-		profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
-		profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
-		profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
-		pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
+		#profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
+		#profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
+		#profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
+		#pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
+
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
-			print(1,time.time())
 			Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
-			print(2,time.time())
 			Cutting_result.SimplifyResult()
-			print(3,time.time())
 			self.Blank = Cutting_result.Shape()
-			print(4,time.time())
 			self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
-			print(5,time.time())
 			self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
-			print(6,time.time())
 			#del self.show_Blank[0]
 			#self.Blank = Cutting_result
-
-
 		except Exception as e:
 			pass
 			print(e)
@@ -683,6 +641,7 @@ if __name__ == '__main__':
 	if not app:  # create QApplication if it doesnt exist
 		app = QtWidgets.QApplication(sys.argv)
 	#启动界面
+	QApplication.setStyle(QStyleFactory.create('Fusion'))
 	splash = QtWidgets.QSplashScreen(QtGui.QPixmap("Pic\\setup_pic.jpg"))#启动图片设置
 	splash.show()
 	splash.showMessage("软件启动中......")
