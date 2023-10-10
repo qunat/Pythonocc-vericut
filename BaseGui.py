@@ -407,11 +407,10 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 
 				
 				G_Ccode=G_Ccode.split(" ")
-				print(G_Ccode,type(G_Ccode))
+				print(G_Ccode,)
 				if G_Ccode[0][0]=="G":
-					if code[0] in ["G00","G01","G02","G03"]:
-						self.machining["status_G"]=code[0]
-				
+					if G_Ccode[0] in ["G00","G01","G02","G03"]:
+						self.machining["status_G"]=G_Ccode[0]
 				for code in G_Ccode:
 					if code[0]=="X":
 						self.machining["x"]=code.replace("X","")
@@ -428,7 +427,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					
 
 				
-				#print(self.machining)
+				print(self.machining)
 				if self.machining["status_G"]=="G01" :
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
@@ -436,7 +435,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					x1 = float(self.machining["x"])  # 目标X坐标
 					y1 = float(self.machining["y"])  # 目标X坐标
 					z1 = float(self.machining["z"])  # 目标X坐标
-					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=1)
+					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=0.1)
 
 					
 				elif  self.machining["status_G"]=="G00":
@@ -446,7 +445,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					x1 = float(self.machining["x"])  # 目标X坐标
 					y1 = float(self.machining["y"])  # 目标X坐标
 					z1 = float(self.machining["z"])  # 目标X坐标
-					path_pnt_list=[gp_Pnt(x1,y1,z1)]
+					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=1)
 					#print(path_pnt_list)
 				elif self.machining["status_G"]=="G02" or self.machining["status_G"]=="G03":
 
@@ -457,11 +456,12 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					y1 = float(self.machining["y"])  # 目标X坐标
 					z1 = float(self.machining["z"])  # 目标X坐标
 					i = float(self.machining["i"]) # 目标I坐标
-					j = float(self.maself.machining["j"])  # 目标j坐标
-					k=float(self.maself.machining["k"])  # 目标K坐标
+					j = float(self.machining["j"])  # 目标j坐标
+					k=float(self.machining["k"])  # 目标K坐标
 					path_pnt_list=Get_Arc_interpolation_point([x0,y0,z0],[x1,y1,z1],[i,j,k])
 
 					#self.canva._display.DisplayShape(path)
+
 				self.machining["x0"] = self.machining["x"]
 				self.machining["y0"] = self.machining["y"]
 				self.machining["z0"] = self.machining["z"]
@@ -469,7 +469,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				for path_pnt_num in range(len(path_pnt_list)):
 					pass
 					try:
-						print(path_pnt_num)
+						print("看这里",path_pnt_num)
 
 						if path_pnt_num==0:
 							continue
@@ -484,6 +484,8 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 
 						self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 						#self.Mill_cut(x, y, z+self.offset_Z)
+						#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
+
 						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
 						self.statusBar().showMessage('状态：仿真进行中')
 						# self.tetxBrowser.moveCursor(self.cursor.setPos(0,0))  # 光标移到最后，这样就会自动显示出来
@@ -574,7 +576,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			T.SetTranslation(gp_Vec(location_X,location_Y, 0))
 			loc = TopLoc_Location(T)
 			self.Blank.Location(loc)
-			self.show_Blank = self.canva._display.DisplayShape(self.Blank,update=True)
+			self.show_Blank = self.canva._display.DisplayShape(self.Blank,transparency=0.5,update=True)
 
 			change=self.show_Blank[0].Shape()
 

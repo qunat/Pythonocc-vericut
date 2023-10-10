@@ -23,7 +23,7 @@ from OCC.Core.GCPnts import GCPnts_UniformAbscissa
 
 
 
-def Get_Linear_interpolation_point(Pnt1=[1,1,30],Pnt2=[1,100,1],step=5):
+def Get_Linear_interpolation_point(Pnt1=[1,1,30],Pnt2=[1,100,1],step=0.1):
     pass
     aPnt1 = gp_Pnt(Pnt1[0],Pnt1[1],Pnt1[2])#起点
     aPnt2 = gp_Pnt(Pnt2[0],Pnt2[1],Pnt2[2])#终点
@@ -54,7 +54,7 @@ def Get_face_direction(face):  # 获取平面的法向
     # print(pln.Axis().Direction().XYZ().Coord())
     original_direct = pln.Axis().Direction().XYZ().Coord()
     return original_direct
-def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],step=3):#pnt1为起点坐标，pnt2为终点坐标，pnt3为i,j,k
+def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],step=0.1):#pnt1为起点坐标，pnt2为终点坐标，pnt3为i,j,k
     try:
 
         x0,y0,z0=Pnt1[:]
