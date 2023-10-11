@@ -79,6 +79,7 @@ def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],step=0.1):#pnt1为起点
             w1 = BRepBuilderAPI_MakeWire(E1, E2, E3)
             F1 = BRepBuilderAPI_MakeFace(w1.Wire()).Face()
             direct = Get_face_direction(F1)
+            
             if Pnt1[0] > Pnt2[0]:
                 if Pnt1[1] > Pnt2[1]:
                     if i > 0:

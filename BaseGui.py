@@ -303,7 +303,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						  "y0": 0, "z0": 0, "i": 0, "j": 0, "k": 0}
 		# new_Create_path=Create_Path()
 		self.textBrowser.clear()
-		self.my_cylinder = BRepPrimAPI_MakeCylinder(10, 50).Shape()
+		self.my_cylinder = BRepPrimAPI_MakeCylinder(5.0, 50).Shape()
 		self.tool = TopoDS_Shape(self.my_cylinder)  # 建立刀具
 		for code, G_Ccode in zip(self.interpreter_G_code.Out_NC_simple, self.textBrowser_list):
 			try:
@@ -482,9 +482,9 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						y=path_pnt_list[path_pnt_num].Y()
 						z=path_pnt_list[path_pnt_num].Z()
 
-						self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+						#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 						#self.Mill_cut(x, y, z+self.offset_Z)
-						#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
+						asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
 
 						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
 						self.statusBar().showMessage('状态：仿真进行中')
