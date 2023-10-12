@@ -469,7 +469,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				for path_pnt_num in range(len(path_pnt_list)):
 					pass
 					try:
-						print("看这里",path_pnt_num)
+						#print("看这里",path_pnt_num)
 
 						if path_pnt_num==0:
 							continue
@@ -481,10 +481,13 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						x=path_pnt_list[path_pnt_num].X()
 						y=path_pnt_list[path_pnt_num].Y()
 						z=path_pnt_list[path_pnt_num].Z()
+						if self.machining["status_G"] in ["G02","G03"]:
+							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+							#self.Mill_cut(x, y, z+self.offset_Z)
+							asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
+						else:
+							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 
-						#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
-						self.Mill_cut(x, y, z+self.offset_Z)
-						#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
 
 						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
 						self.statusBar().showMessage('状态：仿真进行中')
@@ -530,16 +533,16 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 	#@profile
 	def Create_sweep_tool_path(self,x0,y0,z0,x,y,z):
 		#create leading line
-		print(x0,y0,z0)
+		#print(x0,y0,z0)
 		point1 = gp_Pnt(float(x0),float(y0),float(z0))
 		point2 = gp_Pnt(float(x),float(y),float(z))
-		print(point1.Coord(),point2.Coord())
+		#print(point1.Coord(),point2.Coord())
 		edge = BRepBuilderAPI_MakeEdge(point1,point2).Edge()
 		
 		ais_shape=AIS_Shape(edge)
 		self.canva._display.Context.Display(ais_shape,True)
 		self.canva._display.Context.UpdateCurrentViewer()
-		print("make edge ok")
+		#print("make edge ok")
 	
 		#create profile 
 		#profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
