@@ -435,7 +435,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					x1 = float(self.machining["x"])  # 目标X坐标
 					y1 = float(self.machining["y"])  # 目标X坐标
 					z1 = float(self.machining["z"])  # 目标X坐标
-					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=0.1)
+					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=1)
 
 					
 				elif  self.machining["status_G"]=="G00":
@@ -483,8 +483,8 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						z=path_pnt_list[path_pnt_num].Z()
 
 						#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
-						#self.Mill_cut(x, y, z+self.offset_Z)
-						asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
+						self.Mill_cut(x, y, z+self.offset_Z)
+						#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
 
 						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
 						self.statusBar().showMessage('状态：仿真进行中')
