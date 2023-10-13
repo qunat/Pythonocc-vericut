@@ -458,7 +458,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					i = float(self.machining["i"]) # 目标I坐标
 					j = float(self.machining["j"])  # 目标j坐标
 					k=float(self.machining["k"])  # 目标K坐标
-					path_pnt_list=Get_Arc_interpolation_point([x0,y0,z0],[x1,y1,z1],[i,j,k])
+					path_pnt_list=Get_Arc_interpolation_point([x0,y0,z0],[x1,y1,z1],[i,j,k],Direction=self.machining["status_G"])
 
 					#self.canva._display.DisplayShape(path)
 
@@ -484,7 +484,9 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						if self.machining["status_G"] in ["G02","G03"]:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 							#self.Mill_cut(x, y, z+self.offset_Z)
-							asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z),update=False)
+							#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z+self.offset_Z),update=False)
+							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+
 						else:
 							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 
@@ -531,7 +533,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		t.start()
 
 	#@profile
-	def Create_sweep_tool_path(self,x0,y0,z0,x,y,z):
+	def Create_sweep_tool_path(self,x0,y0,z0,x,y,z,mode=None):
 		#create leading line
 		#print(x0,y0,z0)
 		point1 = gp_Pnt(float(x0),float(y0),float(z0))

@@ -54,7 +54,7 @@ def Get_face_direction(face):  # 获取平面的法向
     # print(pln.Axis().Direction().XYZ().Coord())
     original_direct = pln.Axis().Direction().XYZ().Coord()
     return original_direct
-def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],step=0.1):#pnt1为起点坐标，pnt2为终点坐标，pnt3为i,j,k
+def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],Direction=None,step=0.1):#pnt1为起点坐标，pnt2为终点坐标，pnt3为i,j,k
     try:
 
         x0,y0,z0=Pnt1[:]
@@ -69,7 +69,7 @@ def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],step=0.1):#pnt1为起点
         #print("圆心", circle_center, i, j, k,r)
         Location = gp_Pnt(circle_center[0], circle_center[1], circle_center[2])  # 圆心坐标
         # 判断G02/G03
-        if Pnt1[0] !=Pnt2[0]:#不是整圆
+        if Pnt1[0] !=Pnt2[0] or Pnt1[1] !=Pnt2[1]:#不是整圆
             # 通过三点建立一个平面
             E1 = BRepBuilderAPI_MakeEdge(gp_Pnt(x0, y0, z0), gp_Pnt(x, y, z)).Edge()
             E2 = BRepBuilderAPI_MakeEdge(gp_Pnt(x, y, z),
@@ -79,30 +79,10 @@ def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],step=0.1):#pnt1为起点
             w1 = BRepBuilderAPI_MakeWire(E1, E2, E3)
             F1 = BRepBuilderAPI_MakeFace(w1.Wire()).Face()
             direct = Get_face_direction(F1)
-            
-            if Pnt1[0] > Pnt2[0]:
-                if Pnt1[1] > Pnt2[1]:
-                    if i > 0:
-                        Axis = gp_Dir(direct[0] * -1, direct[1] * -1, direct[2] * -1)  # G03
-                    else:
-                        Axis = gp_Dir(direct[0], direct[1], direct[2])  # G02
-                else:
-                    if i > 0:
-                        Axis = gp_Dir(direct[0], direct[1], direct[2])  # G02
-                    else:
-                        Axis = gp_Dir(direct[0] * -1, direct[1] * -1, direct[2] * -1)  # G03
-
-            elif Pnt1[0] < Pnt2[0]:
-                if Pnt1[1] > Pnt2[1]:
-                    if i > 0:
-                        Axis = gp_Dir(direct[0] * -1, direct[1] * -1, direct[2] * -1)  # G03
-                    else:
-                        Axis = gp_Dir(direct[0], direct[1], direct[2])  # G02
-                else:
-                    if i > 0:
-                        Axis = gp_Dir(direct[0], direct[1], direct[2])  # G02
-                    else:
-                        Axis = gp_Dir(direct[0] * -1, direct[1] * -1, direct[2] * -1)  # G03
+            if Direction=="G02":
+                Axis = gp_Dir(0, 0, -1)  # G02
+            elif Direction=="G03":
+                Axis = gp_Dir(0, 0, 1)  # G03
 
             CircleAxis = gp_Ax2(Location, Axis)
             Circle = gp_Circ(CircleAxis, r)
