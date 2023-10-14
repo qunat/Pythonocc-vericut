@@ -12,7 +12,7 @@ from OCC.Core.BRepFilletAPI import BRepFilletAPI_MakeFillet
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
 from OCC.Core.BRepTools import breptools_Write
 from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Pnt
+from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Pnt,gp_Dir,gp_Circ,gp_Ax2
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCC.Display.OCCViewer import OffscreenRenderer
 from OCC.Display.backend import load_backend, get_qt_modules
@@ -481,6 +481,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						x=path_pnt_list[path_pnt_num].X()
 						y=path_pnt_list[path_pnt_num].Y()
 						z=path_pnt_list[path_pnt_num].Z()
+
 						if self.machining["status_G"] in ["G02","G03"]:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 							#self.Mill_cut(x, y, z+self.offset_Z)
@@ -489,6 +490,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 
 						else:
 							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+							#self.Mill_cut(x, y, z+self.offset_Z)
 
 
 						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
@@ -532,6 +534,10 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		t=threading.Thread(target=self.Automatic_run,args=[])
 		t.start()
 
+	def Create_tool_profile(self,x0,y0,z0,x,y,z,mode=None):
+		#create rectange 
+		edge1 = BRepBuilderAPI_MakeEdge(gp_Pnt(x0,y0,z0),gp_Pnt(x0,y0,z0)).Edge()
+
 	#@profile
 	def Create_sweep_tool_path(self,x0,y0,z0,x,y,z,mode=None):
 		#create leading line
@@ -540,6 +546,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		point2 = gp_Pnt(float(x),float(y),float(z))
 		#print(point1.Coord(),point2.Coord())
 		edge = BRepBuilderAPI_MakeEdge(point1,point2).Edge()
+		wire=BRepBuilderAPI_MakeWire(edge).Wire()
 		
 		ais_shape=AIS_Shape(edge)
 		self.canva._display.Context.Display(ais_shape,True)
@@ -547,19 +554,26 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		#print("make edge ok")
 	
 		#create profile 
-		#profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
-		#profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
-		#profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
-		#pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
+		point = gp_Pnt(x0,y0,z0)
+		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));
+		dir = gp_Dir(v1)
+		circle = gp_Circ(gp_Ax2(point,dir), 3)
+		profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
+		profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
+		profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
+		pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
+		ais_shape=AIS_Shape(pipe)
+		self.canva._display.Context.Display(ais_shape,True)
+
 
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
-			Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
-			Cutting_result.SimplifyResult()
-			self.Blank = Cutting_result.Shape()
+			#Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
+			C#utting_result.SimplifyResult()
+			#self.Blank = Cutting_result.Shape()
 			self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
-			self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
+			#self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
 			#del self.show_Blank[0]
 			#self.Blank = Cutting_result
 		except Exception as e:
