@@ -12,7 +12,7 @@ from OCC.Core.BRepFilletAPI import BRepFilletAPI_MakeFillet
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
 from OCC.Core.BRepTools import breptools_Write
 from OCC.Core.TopLoc import TopLoc_Location
-from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Pnt,gp_Dir,gp_Circ,gp_Ax2
+from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Pnt,gp_Dir,gp_Circ,gp_Ax2,gp_Lin,gp_Ax1
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCC.Display.OCCViewer import OffscreenRenderer
 from OCC.Display.backend import load_backend, get_qt_modules
@@ -30,6 +30,8 @@ from PyQt5.QtWidgets import QApplication, QStyleFactory
 from OCC.Core.TColgp import TColgp_Array1OfPnt
 from OCC.Core.GeomAPI import GeomAPI_PointsToBSpline
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge,BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeFace
+from OCC.Core.GC import GC_MakeSegment, GC_MakeCircle, GC_MakeArcOfCircle, GC_MakeEllipse
+import math
 #------------------------------------------------------------开始初始化环境
 log = logging.getLogger(__name__)
 def check_callable(_callable):
@@ -534,9 +536,50 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		t=threading.Thread(target=self.Automatic_run,args=[])
 		t.start()
 
-	def Create_tool_profile(self,x0,y0,z0,x,y,z,mode=None):
+	def Create_tool_profile(self,x0,y0,z0,x,y,z,tool_diameter=5,tool_height=20,mode=None):
 		#create rectange 
-		edge1 = BRepBuilderAPI_MakeEdge(gp_Pnt(x0,y0,z0),gp_Pnt(x0,y0,z0)).Edge()
+		x=[]
+		y=[]
+		z=[]
+		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));#计算两点之间的向量
+		v2=v1.Rotated(gp_Ax1(gp_Pnt(x0,y0,z0),gp_Dir(0,0,1)),math.pi/2)#计算向量旋转90度的向量
+		v3=v2.Reversed()#计算向量反向的向量
+		print(1)
+		x[0]=x0+tool_diameter/2*v2.X()#计算矩形的起点
+		y[0]=y0+tool_diameter/2*v2.Y()#计算矩形的起个点
+		z[0]=z0+tool_diameter/2*v2.Z()#计算矩形的起个点
+		print(2)
+		x[3]=x0+tool_diameter/2*v3.X()#计算矩形的终点
+		y[3]=y0+tool_diameter/2*v3.Y()#计算矩形的起终点
+		z[3]=z0+tool_diameter/2*v3.Z()#计算矩形的起终点
+		print(x[0],y[0],z[0])
+		x[1]=x[0]
+		y[1]=y[0]
+		z[1]=z[0]+tool_height
+
+		x[2]=x[3]
+		y[2]=y[3]
+		z[2]=z[3]+tool_height
+		print(2)
+		#edge0=BRepBuilderAPI_MakeEdge(gp_pnt(x[0],y[0]),z[0]),gp_pnt(x[1],y[1],z[1])).Edge()
+		#edge1=BRepBuilderAPI_MakeEdge(gp_pnt(x[1],y[1]),z[1],gp_pnt(x[2],y[2]),z[2])).Edge()
+		#edge2=BRepBuilderAPI_MakeEdge(gp_pnt(x[2],y[2]),z[2],gp_pnt(x[3],y[3]),z[3])).Edge()
+		#edge3=BRepBuilderAPI_MakeEdge(gp_pnt(x[3],y[3]),z[3],gp_pnt(x[0],y[0]),z[0])).Edge()
+
+		rectange=BRepBuilderAPI_MakeWire(edge0,edge1,edge2,edge3).Wire()
+		print(rectange)
+
+
+		#self.canva._display.DisplayShape(gp_Pnt(x[0],y[0],z[0]))
+		
+
+
+		#line1=gp_Lin(gp_Pnt(x,y,z),gp_Dir(v1))
+		#line2=line1.Rotated(gp_Ax1(gp_Pnt(x,y,z),gp_Dir(0,0,1)),math.pi/4)
+		#print(v1.Angle(v2),v1.X(),v1.Y(),v1.Z())
+		#gc=GC_MakeSegment(gp_Pnt(x0,y0,z0),gp_Pnt(x0,y0,z0))
+		#edge1 = BRepBuilderAPI_MakeEdge(gp_Pnt(x0,y0,z0),gp_Pnt(x0,y0,z0)).Edge()
+		#GC_MakeSegment(gp_Pnt(x0,y0,z0),gp_Pnt(x0,y0,z0))
 
 	#@profile
 	def Create_sweep_tool_path(self,x0,y0,z0,x,y,z,mode=None):
@@ -554,6 +597,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		#print("make edge ok")
 	
 		#create profile 
+		self.Create_tool_profile(x0,y0,z0,x,y,z)
 		point = gp_Pnt(x0,y0,z0)
 		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));
 		dir = gp_Dir(v1)
