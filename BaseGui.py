@@ -402,7 +402,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					if self.finish == -1 or self.clear_path == -1:
 						self.pushButton_4.setText("暂停")
 						break
-				time.sleep(0.03)
+				#time.sleep(0.03)
 				if code == []:
 					continue
 				self.textBrowser.append(G_Ccode)
@@ -410,6 +410,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				
 				G_Ccode=G_Ccode.split(" ")
 				print(G_Ccode,)
+				start_time=time.time()
 				if G_Ccode[0][0]=="G":
 					if G_Ccode[0] in ["G00","G01","G02","G03"]:
 						self.machining["status_G"]=G_Ccode[0]
@@ -429,7 +430,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					
 
 				
-				print(self.machining)
+				#print(self.machining)
 				if self.machining["status_G"]=="G01" :
 					x0 = float(self.machining["x0"])  # 当前X坐标
 					y0 = float(self.machining["y0"])  # 当前y坐标
@@ -468,6 +469,8 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				self.machining["y0"] = self.machining["y"]
 				self.machining["z0"] = self.machining["z"]
 				#print(path_pnt_list)
+				end_time=time.time()
+				print("时间",end_time-start_time)
 				for path_pnt_num in range(len(path_pnt_list)):
 					pass
 					try:
@@ -483,18 +486,20 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						x=path_pnt_list[path_pnt_num].X()
 						y=path_pnt_list[path_pnt_num].Y()
 						z=path_pnt_list[path_pnt_num].Z()
-
+						start_time=time.time()
 						if self.machining["status_G"] in ["G02","G03"]:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 							#self.Mill_cut(x, y, z+self.offset_Z)
 							#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z+self.offset_Z),update=False)
 							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+							#self.Mill_cut(x, y, z+self.offset_Z)
 
 						else:
 							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 							#self.Mill_cut(x, y, z+self.offset_Z)
 
-
+						end_time=time.time()
+						print("时间",end_time-start_time)
 						QtWidgets.QApplication.processEvents()  # 一定加上这个功能，不然有卡顿
 						self.statusBar().showMessage('状态：仿真进行中')
 						# self.tetxBrowser.moveCursor(self.cursor.setPos(0,0))  # 光标移到最后，这样就会自动显示出来
@@ -536,38 +541,41 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		t=threading.Thread(target=self.Automatic_run,args=[])
 		t.start()
 
-	def Create_tool_profile(self,x0,y0,z0,x,y,z,tool_diameter=5,tool_height=20,mode=None):
+	def Create_tool_profile(self,x0,y0,z0,x,y,z,tool_diameter=10,tool_height=20,mode=None):
 		#create rectange 
-		x=[]
-		y=[]
-		z=[]
+		point0=[0,0,0]
+		point1=[0,0,0]
+		point2=[0,0,0]
+		point3=[0,0,0]
 		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));#计算两点之间的向量
 		v2=v1.Rotated(gp_Ax1(gp_Pnt(x0,y0,z0),gp_Dir(0,0,1)),math.pi/2)#计算向量旋转90度的向量
 		v3=v2.Reversed()#计算向量反向的向量
-		print(1)
-		x[0]=x0+tool_diameter/2*v2.X()#计算矩形的起点
-		y[0]=y0+tool_diameter/2*v2.Y()#计算矩形的起个点
-		z[0]=z0+tool_diameter/2*v2.Z()#计算矩形的起个点
-		print(2)
-		x[3]=x0+tool_diameter/2*v3.X()#计算矩形的终点
-		y[3]=y0+tool_diameter/2*v3.Y()#计算矩形的起终点
-		z[3]=z0+tool_diameter/2*v3.Z()#计算矩形的起终点
-		print(x[0],y[0],z[0])
-		x[1]=x[0]
-		y[1]=y[0]
-		z[1]=z[0]+tool_height
+		point0[0]=x0+tool_diameter/2*v2.X()#计算矩形的起点
+		point0[1]=y0+tool_diameter/2*v2.Y()#计算矩形的起个点
+		point0[2]=z0+tool_diameter/2*v2.Z()#计算矩形的起个点
 
-		x[2]=x[3]
-		y[2]=y[3]
-		z[2]=z[3]+tool_height
-		print(2)
-		#edge0=BRepBuilderAPI_MakeEdge(gp_pnt(x[0],y[0]),z[0]),gp_pnt(x[1],y[1],z[1])).Edge()
-		#edge1=BRepBuilderAPI_MakeEdge(gp_pnt(x[1],y[1]),z[1],gp_pnt(x[2],y[2]),z[2])).Edge()
-		#edge2=BRepBuilderAPI_MakeEdge(gp_pnt(x[2],y[2]),z[2],gp_pnt(x[3],y[3]),z[3])).Edge()
-		#edge3=BRepBuilderAPI_MakeEdge(gp_pnt(x[3],y[3]),z[3],gp_pnt(x[0],y[0]),z[0])).Edge()
+		point3[0]=x0+tool_diameter/2*v3.X()#计算矩形的终点
+		point3[1]=y0+tool_diameter/2*v3.Y()#计算矩形的起终点
+		point3[2]=z0+tool_diameter/2*v3.Z()#计算矩形的起终点
+		
+		point1[0]=point0[0]
+		point1[1]=point0[1]
+		point1[2]=point0[2]+tool_height
+
+		point2[0]=point3[0]
+		point2[1]=point3[1]
+		point2[2]=point3[2]+tool_height
+	
+		edge0=BRepBuilderAPI_MakeEdge(gp_Pnt(point0[0],point0[1],point0[2]),gp_Pnt(point1[0],point1[1],point1[2])).Edge()
+		edge1=BRepBuilderAPI_MakeEdge(gp_Pnt(point1[0],point1[1],point1[2]),gp_Pnt(point2[0],point2[1],point2[2])).Edge()
+		edge2=BRepBuilderAPI_MakeEdge(gp_Pnt(point2[0],point2[1],point2[2]),gp_Pnt(point3[0],point3[1],point3[2])).Edge()
+		edge3=BRepBuilderAPI_MakeEdge(gp_Pnt(point3[0],point3[1],point3[2]),gp_Pnt(point0[0],point0[1],point0[2])).Edge()
 
 		rectange=BRepBuilderAPI_MakeWire(edge0,edge1,edge2,edge3).Wire()
-		print(rectange)
+		#self.canva._display.DisplayShape(rectange)
+
+		return rectange
+
 
 
 		#self.canva._display.DisplayShape(gp_Pnt(x[0],y[0],z[0]))
@@ -592,31 +600,32 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		wire=BRepBuilderAPI_MakeWire(edge).Wire()
 		
 		ais_shape=AIS_Shape(edge)
-		self.canva._display.Context.Display(ais_shape,True)
-		self.canva._display.Context.UpdateCurrentViewer()
+		#self.canva._display.Context.Display(ais_shape,True)
+		#self.canva._display.Context.UpdateCurrentViewer()
 		#print("make edge ok")
 	
 		#create profile 
-		self.Create_tool_profile(x0,y0,z0,x,y,z)
-		point = gp_Pnt(x0,y0,z0)
-		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));
-		dir = gp_Dir(v1)
-		circle = gp_Circ(gp_Ax2(point,dir), 3)
-		profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
-		profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
+		profile_wire=self.Create_tool_profile(x0,y0,z0,x,y,z)
+		#point = gp_Pnt(x0,y0,z0)
+		#v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));
+		#dir = gp_Dir(v1)
+		#circle = gp_Circ(gp_Ax2(point,dir), 3)
+		#profile_edge = BRepBuilderAPI_MakeEdge(circle).Edge()
+		#profile_wire = BRepBuilderAPI_MakeWire(profile_edge).Wire()
 		profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
-		pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
-		ais_shape=AIS_Shape(pipe)
-		self.canva._display.Context.Display(ais_shape,True)
+		self.pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
+		#ais_shape=AIS_Shape(pipe)
+		#self.canva._display.Context.Display(ais_shape,True)
+		#return pipe
 
 
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
 			#Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
-			C#utting_result.SimplifyResult()
+			#Cutting_result.SimplifyResult()
 			#self.Blank = Cutting_result.Shape()
-			self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
+			#self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
 			#self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
 			#del self.show_Blank[0]
 			#self.Blank = Cutting_result

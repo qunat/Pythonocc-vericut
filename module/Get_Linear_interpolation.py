@@ -70,15 +70,6 @@ def Get_Arc_interpolation_point(Pnt1=[],Pnt2=[],Pnt3=[],Direction=None,step=0.1)
         Location = gp_Pnt(circle_center[0], circle_center[1], circle_center[2])  # 圆心坐标
         # 判断G02/G03
         if Pnt1[0] !=Pnt2[0] or Pnt1[1] !=Pnt2[1]:#不是整圆
-            # 通过三点建立一个平面
-            E1 = BRepBuilderAPI_MakeEdge(gp_Pnt(x0, y0, z0), gp_Pnt(x, y, z)).Edge()
-            E2 = BRepBuilderAPI_MakeEdge(gp_Pnt(x, y, z),
-                                         gp_Pnt(circle_center[0], circle_center[1], circle_center[2])).Edge()
-            E3 = BRepBuilderAPI_MakeEdge(gp_Pnt(circle_center[0], circle_center[1], circle_center[2]),
-                                         gp_Pnt(x0, y0, z0)).Edge()
-            w1 = BRepBuilderAPI_MakeWire(E1, E2, E3)
-            F1 = BRepBuilderAPI_MakeFace(w1.Wire()).Face()
-            direct = Get_face_direction(F1)
             if Direction=="G02":
                 Axis = gp_Dir(0, 0, -1)  # G02
             elif Direction=="G03":
