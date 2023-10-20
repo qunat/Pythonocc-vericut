@@ -20,7 +20,7 @@
 from __future__ import print_function
 
 from OCC.Core.gp import gp_Pln, gp_XOY, gp_Ax3, gp_YOZ, gp_Elips
-from OCC.Core.IntAna import IntAna_IntConicQuad
+from OCC.Core.IntAna import IntAna_IntConicQuad,IntAna_QuadQuadGeo
 from OCC.Core.Precision import precision_Angular, precision_Confusion
 from OCC.Core.GC import GC_MakePlane, GC_MakeEllipse
 from OCC.Core.Geom import Geom_RectangularTrimmedSurface

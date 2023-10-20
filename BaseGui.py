@@ -9,11 +9,11 @@ import time,re
 #from PyQt5 import QtSvg
 from OCC.Core.AIS import AIS_Shape
 from OCC.Core.BRepFilletAPI import BRepFilletAPI_MakeFillet
-from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakePrism
 from OCC.Core.BRepTools import breptools_Write
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.gp import gp_Trsf, gp_Vec, gp_Pnt,gp_Dir,gp_Circ,gp_Ax2,gp_Lin,gp_Ax1
-from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
+from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse, BRepAlgoAPI_Common
 from OCC.Display.OCCViewer import OffscreenRenderer
 from OCC.Display.backend import load_backend, get_qt_modules
 from OCC.Extend.TopologyUtils import TopologyExplorer
@@ -35,7 +35,7 @@ import math
 from OCC.Core.BOPAlgo import BOPAlgo_RemoveFeatures
 from OCC.Core.BRepTools import breptools_Read
 from OCC.Core.BRep import BRep_Builder
-from OCC.Core import BRepTools
+from OCC.Core import BRepTools, BRepExtrema
 from OCC.Core.STEPControl import STEPControl_Writer, STEPControl_AsIs
 #------------------------------------------------------------开始初始化环境
 log = logging.getLogger(__name__)
@@ -477,7 +477,10 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					#print(path_pnt_list)
 					print(x0,y0,z0,x,y,z)
 					self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
-
+					#求扫描路径相交体
+					self.sweep_tool_shape=BRepAlgoAPI_Common(self.pipe,self.Blank).Shape()
+					#self.canva._display.DisplayShape(self.sweep_tool_shape)
+				
 				self.machining["x0"] = self.machining["x"]
 				self.machining["y0"] = self.machining["y"]
 				self.machining["z0"] = self.machining["z"]
@@ -505,6 +508,8 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						if self.machining["status_G"] in ["G02","G03","G01"]:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 							self.Mill_cut(x, y, z+self.offset_Z)
+							self.Get_tool_intersection_curve(x,y,z+self.offset_Z)
+							
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 						else:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
@@ -559,18 +564,52 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		point1=[0,0,0]
 		point2=[0,0,0]
 		point3=[0,0,0]
-		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z));#计算两点之间的向量
-		print(v1.X(),v1.Y(),v1.Z())
-		v2=v1.Rotated(gp_Ax1(gp_Pnt(x0,y0,z0),gp_Dir(0,0,1)),math.pi/2)#计算向量旋转90度的向量
-		print(v2.X(),v2.Y(),v2.Z())
+		
+		v1=gp_Vec(gp_Pnt(x0,y0,z0),gp_Pnt(x,y,z))
+		self.tool_direction=v1
+		v2 = v1.Rotated(gp_Ax1(gp_Pnt(x0, y0, z0), gp_Dir(0, 0, 1)), math.pi / 2)  # 计算向量旋转90度的向量
+	
+		# 绘制射线
+		line=gp_Lin(gp_Pnt(x0,y0,z0),gp_Dir(v2))
+		edge_builder = BRepBuilderAPI_MakeEdge(line).Edge()
+		#绘制圆弧
+		Axis = gp_Dir(0, 0, 1)
+		CircleAxis = gp_Ax2(gp_Pnt(x0,y0,z0), Axis)
+		Circle = gp_Circ(CircleAxis, tool_diameter/ 2)
+		ArcofCircle0 = GC_MakeArcOfCircle(Circle, 0 / 180 * math.pi, 360 / 180 * math.pi, True)
+		ArcofCircle1 = BRepBuilderAPI_MakeEdge(ArcofCircle0.Value()).Edge()
+		#计算圆弧与射线的交点
+		extrema = BRepExtrema.BRepExtrema_DistShapeShape(ArcofCircle1, edge_builder)
+		nearest_point1 = extrema.PointOnShape1(1)
+		nearest_point2 = extrema.PointOnShape2(1)
+		
+		
+		#矩形截面的起点坐标
+		point0[0] =nearest_point1.X()
+		point0[1] =nearest_point1.Y()
+		point0[2] =nearest_point1.Z()
+		
 		v3=v2.Reversed()#计算向量反向的向量
-		point0[0]=x0+tool_diameter/2*v2.X()#计算矩形的起点
-		point0[1]=y0+tool_diameter/2*v2.Y()#计算矩形的起个点
-		point0[2]=z0+tool_diameter/2*v2.Z()#计算矩形的起个点
-
-		point3[0]=x0+tool_diameter/2*v3.X()#计算矩形的终点
-		point3[1]=y0+tool_diameter/2*v3.Y()#计算矩形的起终点
-		point3[2]=z0+tool_diameter/2*v3.Z()#计算矩形的起终点
+		# 绘制射线
+		line = gp_Lin(gp_Pnt(x0, y0, z0), gp_Dir(v3))
+		edge_builder = BRepBuilderAPI_MakeEdge(line).Edge()
+		# 绘制圆弧
+		Axis = gp_Dir(0, 0, 1)
+		CircleAxis = gp_Ax2(gp_Pnt(x0, y0, z0), Axis)
+		Circle = gp_Circ(CircleAxis, tool_diameter / 2)
+		ArcofCircle0 = GC_MakeArcOfCircle(Circle, 0 / 180 * math.pi, 360 / 180 * math.pi, True)
+		ArcofCircle1 = BRepBuilderAPI_MakeEdge(ArcofCircle0.Value()).Edge()
+		# 计算圆弧与射线的交点
+		extrema = BRepExtrema.BRepExtrema_DistShapeShape(ArcofCircle1, edge_builder)
+		nearest_point1 = extrema.PointOnShape1(1)
+		nearest_point2 = extrema.PointOnShape2(1)
+		
+		
+		point3[0]=nearest_point1.X()
+		point3[1]=nearest_point1.Y()
+		point3[2]=nearest_point1.Z()
+		
+		
 		
 		point1[0]=point0[0]
 		point1[1]=point0[1]
@@ -610,10 +649,67 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		profile_face = BRepBuilderAPI_MakeFace(profile_wire).Face()
 		self.pipe = BRepOffsetAPI_MakePipe(wire, profile_face).Shape()
 		ais_shape=AIS_Shape(self.pipe)
-		self.canva._display.Context.Display(ais_shape,True)
+		#self.canva._display.Context.Display(ais_shape,True)
 		return self.pipe
 
-
+	def Get_tool_intersection_curve(self,x0,y0,z0,tool_diameter=10):#求刀具与零件的交线
+		point0 = [0, 0, 0]
+		point3 = [0, 0, 0]
+		
+		v1=self.tool_direction
+		v2 = v1.Rotated(gp_Ax1(gp_Pnt(x0, y0, z0), gp_Dir(0, 0, 1)), math.pi / 2)  # 计算向量旋转90度的向量
+		
+		# 绘制射线
+		line = gp_Lin(gp_Pnt(x0, y0, z0), gp_Dir(v2))
+		edge_builder = BRepBuilderAPI_MakeEdge(line).Edge()
+		# 绘制圆弧
+		Axis = gp_Dir(0, 0, 1)
+		CircleAxis = gp_Ax2(gp_Pnt(x0, y0, z0), Axis)
+		Circle = gp_Circ(CircleAxis, tool_diameter / 2)
+		ArcofCircle0 = GC_MakeArcOfCircle(Circle, 0 / 180 * math.pi, 360 / 180 * math.pi, True)
+		ArcofCircle1 = BRepBuilderAPI_MakeEdge(ArcofCircle0.Value()).Edge()
+		# 计算圆弧与射线的交点
+		extrema = BRepExtrema.BRepExtrema_DistShapeShape(ArcofCircle1, edge_builder)
+		nearest_point1 = extrema.PointOnShape1(1)
+		nearest_point2 = extrema.PointOnShape2(1)
+		
+		# 矩形截面的起点坐标
+		point0[0] = nearest_point1.X()
+		point0[1] = nearest_point1.Y()
+		point0[2] = nearest_point1.Z()
+		
+		v3 = v2.Reversed()  # 计算向量反向的向量
+		# 绘制射线
+		line = gp_Lin(gp_Pnt(x0, y0, z0), gp_Dir(v3))
+		edge_builder = BRepBuilderAPI_MakeEdge(line).Edge()
+		# 绘制圆弧
+		Axis = gp_Dir(0, 0, 1)
+		CircleAxis = gp_Ax2(gp_Pnt(x0, y0, z0), Axis)
+		Circle = gp_Circ(CircleAxis, tool_diameter / 2)
+		ArcofCircle0 = GC_MakeArcOfCircle(Circle, 0 / 180 * math.pi, 360 / 180 * math.pi, True)
+		ArcofCircle1 = BRepBuilderAPI_MakeEdge(ArcofCircle0.Value()).Edge()
+		# 计算圆弧与射线的交点
+		extrema = BRepExtrema.BRepExtrema_DistShapeShape(ArcofCircle1, edge_builder)
+		nearest_point1 = extrema.PointOnShape1(1)
+		nearest_point2 = extrema.PointOnShape2(1)
+		
+		point3[0] = nearest_point1.X()
+		point3[1] = nearest_point1.Y()
+		point3[2] = nearest_point1.Z()
+		
+		Axis=gp_Dir(0,0,-1)
+		CircleAxis = gp_Ax2(gp_Pnt(x0,y0,z0), Axis)
+		Circle = gp_Circ(CircleAxis, tool_diameter / 2)
+		ArcofCircle0 = GC_MakeArcOfCircle(Circle, gp_Pnt(point0[0], point0[1], point0[2]), gp_Pnt(point3[0],point3[1],point3[2]), True)
+		ArcofCircle1 = BRepBuilderAPI_MakeEdge(ArcofCircle0.Value())
+		Circle = BRepBuilderAPI_MakeWire(ArcofCircle1.Edge())
+		
+		S =BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(Circle.Wire()).Face(),gp_Vec(0.,0,50))
+		self.curve = BRepAlgoAPI_Common(S.Shape(), self.sweep_tool_shape).Shape()
+		print(self.curve)
+		#self.canva._display.Context.Display(AIS_Shape(S.Shape()),True)
+		self.canva._display.Context.Display(AIS_Shape(self.curve),True)
+		
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
