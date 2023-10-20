@@ -32,6 +32,11 @@ from OCC.Core.GeomAPI import GeomAPI_PointsToBSpline
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge,BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeFace
 from OCC.Core.GC import GC_MakeSegment, GC_MakeCircle, GC_MakeArcOfCircle, GC_MakeEllipse
 import math
+from OCC.Core.BOPAlgo import BOPAlgo_RemoveFeatures
+from OCC.Core.BRepTools import breptools_Read
+from OCC.Core.BRep import BRep_Builder
+from OCC.Core import BRepTools
+from OCC.Core.STEPControl import STEPControl_Writer, STEPControl_AsIs
 #------------------------------------------------------------开始初始化环境
 log = logging.getLogger(__name__)
 def check_callable(_callable):
@@ -112,6 +117,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		self.pushButton_8.clicked.connect(self.clear_path_button_fun)#清理现有界面
 		#---------------------------------------------------------------菜单栏
 		self.import_machone_model.triggered.connect(self.Import_machine_model)
+		self.import_machining_part.triggered.connect(self.Import_machining_part)
 
 		#--------------------------------------------------------------控件更新信号
 		#self.comboBox_3.currentTextChanged.connect(self.updata_show)
@@ -207,8 +213,6 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			pass
 
 	def Import_machining_part(self):  # 导入加工数据
-		pass
-		# 清除之前数据
 		try:
 			self.chose_document = QFileDialog.getOpenFileName(self, '打开文件', './',
 															  " STP files(*.stp , *.step);;(*.iges);;(*.stl)")  # 选择转换的文价夹
@@ -226,9 +230,6 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			try:
 				# self.canva._display.Context.Remove(self.show[0], True)
 				self.acompound=self.import_shape
-				self.canva._display.EraseAll()
-				self.canva._display.hide_triedron()
-				self.canva._display.display_triedron()
 				self.show = self.canva._display.DisplayShape(self.import_shape, color="WHITE", update=True)
 				self.canva._display.FitAll()
 			except:
@@ -305,7 +306,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						  "y0": 0, "z0": 0, "i": 0, "j": 0, "k": 0}
 		# new_Create_path=Create_Path()
 		self.textBrowser.clear()
-		self.my_cylinder = BRepPrimAPI_MakeCylinder(5.0, 50).Shape()
+		self.my_cylinder = BRepPrimAPI_MakeCylinder(10.0, 50).Shape()
 		self.tool = TopoDS_Shape(self.my_cylinder)  # 建立刀具
 		for code, G_Ccode in zip(self.interpreter_G_code.Out_NC_simple, self.textBrowser_list):
 			try:
@@ -438,7 +439,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 					x1 = float(self.machining["x"])  # 目标X坐标
 					y1 = float(self.machining["y"])  # 目标X坐标
 					z1 = float(self.machining["z"])  # 目标X坐标
-					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=1)
+					path_pnt_list=Get_Linear_interpolation_point([x0,y0,z0],[x1,y1,z1],step=2)
 
 					
 				elif  self.machining["status_G"]=="G00":
@@ -489,14 +490,11 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						start_time=time.time()
 						if self.machining["status_G"] in ["G02","G03"]:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
-							#self.Mill_cut(x, y, z+self.offset_Z)
-							#asd123 = self.canva._display.DisplayShape(gp_Pnt(x,y,z+self.offset_Z),update=False)
+							self.Mill_cut(x, y, z+self.offset_Z)
 							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
-							#self.Mill_cut(x, y, z+self.offset_Z)
-
 						else:
 							self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
-							#self.Mill_cut(x, y, z+self.offset_Z)
+							self.Mill_cut(x, y, z+self.offset_Z)
 
 						end_time=time.time()
 						print("时间",end_time-start_time)
@@ -600,8 +598,8 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 		wire=BRepBuilderAPI_MakeWire(edge).Wire()
 		
 		ais_shape=AIS_Shape(edge)
-		#self.canva._display.Context.Display(ais_shape,True)
-		#self.canva._display.Context.UpdateCurrentViewer()
+		self.canva._display.Context.Display(ais_shape,True)
+		self.canva._display.Context.UpdateCurrentViewer()
 		#print("make edge ok")
 	
 		#create profile 
@@ -622,11 +620,14 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
-			#Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
-			#Cutting_result.SimplifyResult()
-			#self.Blank = Cutting_result.Shape()
-			#self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
-			#self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
+			Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
+			Cutting_result.SimplifyResult()
+			self.Blank = Cutting_result.Shape()
+			write_step_file(self.Blank,"Blank.stp")
+			self.Blank = read_step_file("Blank.stp")
+			print(self.Blank)
+			self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
+			self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
 			#del self.show_Blank[0]
 			#self.Blank = Cutting_result
 		except Exception as e:
