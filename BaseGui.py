@@ -25,7 +25,7 @@ from graphics import GraphicsView, GraphicsPixmapItem
 from OCC.Core.TopAbs import (TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX,
 							 TopAbs_SHELL, TopAbs_SOLID)
 from module.Get_Linear_interpolation import Get_Linear_interpolation_point,Get_Arc_interpolation_point
-from OCC.Core.BRepOffsetAPI import BRepOffsetAPI_MakePipe
+#from OCC.Core.BRepOffsetAPI import BRepOffsetAPI_MakePipe
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 from OCC.Core.TColgp import TColgp_Array1OfPnt
 from OCC.Core.GeomAPI import GeomAPI_PointsToBSpline
