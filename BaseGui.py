@@ -474,11 +474,12 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 				z=float(self.machining["z"])#目标X坐标
 
 				if self.machining["status_G"] in ["G02","G03","G01"]:
+					pass
 					#print(path_pnt_list)
-					print(x0,y0,z0,x,y,z)
-					self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
+					#print(x0,y0,z0,x,y,z)
+					#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 					#求扫描路径相交体
-					self.sweep_tool_shape=BRepAlgoAPI_Common(self.pipe,self.Blank).Shape()
+					#self.sweep_tool_shape=BRepAlgoAPI_Common(self.pipe,self.Blank).Shape()
 					#self.canva._display.DisplayShape(self.sweep_tool_shape)
 				
 				self.machining["x0"] = self.machining["x"]
@@ -508,7 +509,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 						if self.machining["status_G"] in ["G02","G03","G01"]:
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 							self.Mill_cut(x, y, z+self.offset_Z)
-							self.Get_tool_intersection_curve(x,y,z+self.offset_Z)
+							#self.Get_tool_intersection_curve(x,y,z+self.offset_Z)
 							
 							#self.Create_sweep_tool_path(x0,y0,z0+self.offset_Z,x,y,z+self.offset_Z)
 						else:
@@ -713,11 +714,11 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 	def Mill_cut(self,x=0,y=0,z=0):
 		try:
 			self.Axis_move(distance_x=x, distance_y=y, distance_z=z)
-			#Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
-			#Cutting_result.SimplifyResult()
-			#self.Blank = Cutting_result.Shape()
-			#self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
-			#self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
+			Cutting_result = BRepAlgoAPI_Cut(self.Blank, self.tool)
+			Cutting_result.SimplifyResult()
+			self.Blank = Cutting_result.Shape()
+			self.show_Blank[0].SetShape(self.Blank)  # 将已经显示的零件设置成另外一个新零件
+			self.canva._display.Context.Redisplay(self.show_Blank[0], True, False)  # 重新计算更新已经显示的物体
 		except Exception as e:
 			pass
 			print(e)
@@ -737,7 +738,7 @@ class Mywindown(QtWidgets.QMainWindow,MainGui.Ui_MainWindow):
 			T.SetTranslation(gp_Vec(location_X,location_Y, 0))
 			loc = TopLoc_Location(T)
 			self.Blank.Location(loc)
-			self.show_Blank = self.canva._display.DisplayShape(self.Blank,transparency=0.5,update=True)
+			self.show_Blank = self.canva._display.DisplayShape(self.Blank,transparency=0,update=True)
 
 			change=self.show_Blank[0].Shape()
 
